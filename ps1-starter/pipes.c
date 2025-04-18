@@ -22,25 +22,22 @@ int main(int argc,char* argv[]) {
        exit(1);
    }
 
-   // First child
    pid_t pid1 = fork();
    if (pid1 == 0) {
        dup2(pipe1[WRITEEND], STDOUT_FILENO);
        close(pipe1[READEND]);
-       
        close(pipe1[WRITEEND]);
        execlp("ls", "ls", "/dev", NULL);
        perror("execlp ls failed");
        exit(1);
    }
 
-   // Second child
    pid_t pid2 = fork();
    if (pid2 == 0) {
        dup2(pipe1[READEND], STDIN_FILENO);
        dup2(pipe2[WRITEEND], STDOUT_FILENO);
-       close(pipe1[WRITEEND]);
        close(pipe1[READEND]);
+       close(pipe1[WRITEEND]);
        close(pipe2[READEND]);
        close(pipe2[WRITEEND]);
        execlp("xargs", "xargs", NULL);
@@ -48,12 +45,11 @@ int main(int argc,char* argv[]) {
        exit(1);
    }
 
-   // Third child
    pid_t pid3 = fork();
    if (pid3 == 0) {
        dup2(pipe2[READEND], STDIN_FILENO);
-       close(pipe2[WRITEEND]);
        close(pipe2[READEND]);
+       close(pipe2[WRITEEND]);
 
        char range[20];
        snprintf(range, sizeof(range), "%d-%d", a, b);
@@ -69,11 +65,11 @@ int main(int argc,char* argv[]) {
    close(pipe2[READEND]);
    close(pipe2[WRITEEND]);
 
-   // Wait 
-   wait(NULL);
-   wait(NULL);
-   wait(NULL);
-
+   // Wait for all children
+   for (int i = 0; i < 3; i++) {
+       wait(NULL);
+   
+   }
    return 0;
 }
 
