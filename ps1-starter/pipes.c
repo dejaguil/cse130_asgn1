@@ -24,9 +24,13 @@ int main(int argc,char* argv[]) {
 
    pid_t pid1 = fork();
    if (pid1 == 0) {
+       // Child 1
        dup2(pipe1[WRITEEND], STDOUT_FILENO);
        close(pipe1[READEND]);
        close(pipe1[WRITEEND]);
+       close(pipe2[READEND]);
+       close(pipe2[WRITEEND]);
+
        execlp("ls", "ls", "/dev", NULL);
        perror("execlp ls failed");
        exit(1);
@@ -34,12 +38,15 @@ int main(int argc,char* argv[]) {
 
    pid_t pid2 = fork();
    if (pid2 == 0) {
+       // Child 2
        dup2(pipe1[READEND], STDIN_FILENO);
        dup2(pipe2[WRITEEND], STDOUT_FILENO);
+
        close(pipe1[READEND]);
        close(pipe1[WRITEEND]);
        close(pipe2[READEND]);
        close(pipe2[WRITEEND]);
+
        execlp("xargs", "xargs", NULL);
        perror("execlp xargs failed");
        exit(1);
@@ -47,7 +54,11 @@ int main(int argc,char* argv[]) {
 
    pid_t pid3 = fork();
    if (pid3 == 0) {
+       // Child 3
        dup2(pipe2[READEND], STDIN_FILENO);
+
+       close(pipe1[READEND]);
+       close(pipe1[WRITEEND]);
        close(pipe2[READEND]);
        close(pipe2[WRITEEND]);
 
@@ -67,8 +78,7 @@ int main(int argc,char* argv[]) {
 
    // Wait for all children
    for (int i = 0; i < 3; i++) {
-       wait(NULL);
-   
+       waitpid(-1, NULL, 0);
    }
    return 0;
 }
